@@ -1,5 +1,4 @@
-__pycache__/
-.pytest_cache/
-*.html
 venv/
-.DS_Store
+.pytest_cache/
+report.html
+__pycache__/
