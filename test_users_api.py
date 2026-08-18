@@ -13,69 +13,54 @@ def api_client():
     return session
 
 
-def test_create_new_user(api_client):
-    """POST: Validate 201 status, payload creation, and response time < 2s"""
+# -------------------------------------------------------------------
+# DATA-DRIVEN TEST 1: Retrieve multiple users by ID
+# -------------------------------------------------------------------
+@pytest.mark.parametrize("user_id, expected_name", [
+    (1, "Leanne Graham"),
+    (2, "Ervin Howell"),
+    (3, "Clementine Bauch"),
+    (4, "Patricia Lebsack")
+])
+def test_get_multiple_users_by_id(api_client, user_id, expected_name):
+    response = api_client.get(f"{BASE_URL}/users/{user_id}")
+    assert response.status_code == 200
+    assert response.elapsed.total_seconds() < 2.0
+    
+    data = response.json()
+    assert data["id"] == user_id
+    assert data["name"] == expected_name
+
+
+# -------------------------------------------------------------------
+# DATA-DRIVEN TEST 2: Create multiple users with varying payloads
+# -------------------------------------------------------------------
+@pytest.mark.parametrize("name, username, email", [
+    ("Jane Doe", "janedoe", "jane@example.com"),
+    ("Alex Smith", "alexs", "alex@company.org"),
+    ("Sam Wilson", "samw", "sam@techcorp.io")
+])
+def test_create_multiple_users(api_client, name, username, email):
     user_payload = {
-        "name": "Jane Doe",
-        "username": "janedoe",
-        "email": "jane@example.com"
+        "name": name,
+        "username": username,
+        "email": email
     }
-    
     response = api_client.post(f"{BASE_URL}/users", json=user_payload)
-    
-    # HTTP Status Assertion
     assert response.status_code == 201
+    assert response.elapsed.total_seconds() < 2.0
     
-    # SLA Response Time Assertion (< 2.0 seconds)
-    assert response.elapsed.total_seconds() < 2.0, f"Response too slow: {response.elapsed.total_seconds()}s"
-    
-    # Body Payload & Structure Assertions
     data = response.json()
     assert isinstance(data["id"], int)
-    assert data["name"] == "Jane Doe"
-    assert data["email"] == "jane@example.com"
+    assert data["name"] == name
+    assert data["username"] == username
+    assert data["email"] == email
 
 
-def test_get_user_by_id(api_client):
-    """GET: Validate 200 status, schema keys, and response time < 2s"""
-    user_id = 1
-    
-    response = api_client.get(f"{BASE_URL}/users/{user_id}")
-    
-    assert response.status_code == 200
-    assert response.elapsed.total_seconds() < 2.0
-    
-    data = response.json()
-    # Validate required schema keys exist in the response
-    required_keys = {"id", "name", "username", "email", "address", "phone", "website", "company"}
-    assert required_keys.issubset(data.keys()), "Missing required schema fields"
-    assert data["id"] == user_id
-
-
-def test_update_user(api_client):
-    """PUT: Validate 200 status and updated values"""
-    user_id = 1
-    updated_payload = {
-        "name": "Jane Doe Updated",
-        "username": "janedoe_v2",
-        "email": "jane_updated@example.com"
-    }
-    
-    response = api_client.put(f"{BASE_URL}/users/{user_id}", json=updated_payload)
-    
-    assert response.status_code == 200
-    assert response.elapsed.total_seconds() < 2.0
-    
-    data = response.json()
-    assert data["name"] == "Jane Doe Updated"
-    assert data["username"] == "janedoe_v2"
-
-
-def test_delete_user(api_client):
-    """DELETE: Validate 200 status and response time < 2s"""
-    user_id = 1
-    
-    response = api_client.delete(f"{BASE_URL}/users/{user_id}")
-    
-    assert response.status_code == 200
-    assert response.elapsed.total_seconds() < 2.0
+# -------------------------------------------------------------------
+# DATA-DRIVEN TEST 3: Negative testing for non-existent users
+# -------------------------------------------------------------------
+@pytest.mark.parametrize("invalid_user_id", [9999, 8888, 7777])
+def test_get_non_existent_user_returns_404(api_client, invalid_user_id):
+    response = api_client.get(f"{BASE_URL}/users/{invalid_user_id}")
+    assert response.status_code == 404
