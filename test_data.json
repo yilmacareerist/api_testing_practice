@@ -1,0 +1,8 @@
+[
+  {"distance": 10, "surge": 1.0, "expected_fare": 25.0},
+  {"distance": 5, "surge": 1.5, "expected_fare": 22.5},
+  {"distance": 0, "surge": 1.0, "expected_fare": 5.0},
+  {"distance": 12.5, "surge": 2.0, "expected_fare": 60.0},
+  {"distance": 3, "surge": 1.2, "expected_fare": 13.2},
+  {"distance": 15, "surge": 1.0, "expected_fare": 35.0}
+]
