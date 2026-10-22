@@ -77,3 +77,35 @@ def test_zero_spend_customer_returns_coalesce_default(db_conn):
 
     assert row is not None, "Expected Helen record to exist in customers table"
     assert row[1] == 0.0, f"Expected total spend 0.0 for customer with no orders, but got {row[1]}"
+def test_failed_transaction_triggers_rollback(db_conn):
+    cursor = db_conn.cursor()
+
+    # 1. Capture baseline order count
+    cursor.execute("SELECT COUNT(*) FROM orders;")
+    initial_count = cursor.fetchone()[0]
+
+    # 2. Attempt a transaction where step 2 deliberately fails
+    try:
+        cursor.execute("BEGIN TRANSACTION;")
+        # Valid insert
+        cursor.execute(
+            "INSERT INTO orders (customer_id, order_date, amount, status) VALUES (?, ?, ?, ?);",
+            (1, "2026-10-21", 75.00, "Pending")
+        )
+        # Deliberate failure: customer_id 999 violates foreign key constraint
+        cursor.execute(
+            "INSERT INTO orders (customer_id, order_date, amount, status) VALUES (?, ?, ?, ?);",
+            (999, "2026-10-21", 50.00, "Pending")
+        )
+        db_conn.commit()
+    except Exception:
+        # 3. Roll back all operations in the uncommitted transaction
+        db_conn.rollback()
+
+    # 4. Assert total orders count returned strictly to the baseline
+    cursor.execute("SELECT COUNT(*) FROM orders;")
+    final_count = cursor.fetchone()[0]
+
+    assert final_count == initial_count, (
+        f"Rollback failed: expected {initial_count} orders, but found {final_count}"
+    )
